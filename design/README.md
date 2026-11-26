@@ -10,12 +10,17 @@ skill, re-tokenized to iCube's own colours and fonts).
 
 | # | File stem | Message |
 |---|-----------|---------|
-| 01 | `01-intro` | Brand hero — lockup + “Everything tech · printing · web · software” |
-| 02 | `02-services` | Four service cards: Tech, Printing, Web, Software |
+| 01 | `01-intro` | Brand hero — lockup + “TECH · INNOVATE · IMPACT” |
+| 02 | `02-services` | Four cards: Tech Solutions, Web Solutions, Software, Innovation |
 | 03 | `03-web` | Web solutions spotlight with browser mockup |
 | 04 | `04-software` | Custom software spotlight with terminal motif |
-| 05 | `05-printing` | Printing spotlight — light theme, print-sheet stack |
-| 06 | `06-cta` | Call to action — DM us + link in bio, `@icubeinnovationslab` |
+| 05 | `05-impact` | Impact spotlight — light theme, rising bars |
+| 06 | `06-cta` | Call to action — social row + link in bio |
+
+**Revised after client review (2026-11-26):** printing was removed from the
+storyline and the “DM US” pill was replaced with Instagram · LinkedIn · X marks
+with `@icubeinnovationslab` written beside them, matching the client's flyers.
+`05-printing` became `05-impact`. Do not reintroduce printing or a DM prompt.
 
 Every design is exported at:
 

@@ -131,12 +131,12 @@ function footer(W, H, M, { light, pills = true, id }) {
   const yLine = H - M - 76;
   let out = line(M, yLine, W - M, yLine, col, 1, light ? 0.16 : 0.14);
   const cy = H - M - 34;
-  out += text({ x: M, y: cy + 7, s: HANDLE, size: 23, ff: F.mono, w: 500, fill: col, ls: 1, op: 0.85 });
+  // Social marks + handle on the left; the handle is written beside the logos
+  // exactly as on the user's flyers. "DM US" was dropped on their instruction.
+  const row = socialRow({ x: M, y: cy - 12, size: 26, col, handleSize: 23, gap: 30 });
+  out += row.svg;
   if (pills) {
-    const p2 = pillW('LINK IN BIO');
-    const p1 = pillW('DM US');
     out += pill(W - M, cy, 'LINK IN BIO', { stroke: light ? C.navy : C.white, textColor: col });
-    out += pill(W - M - p2 - 12, cy, 'DM US', { fill: C.blue, textColor: C.white });
   } else {
     out += text({ x: W - M, y: cy + 7, s: FULLNAME, size: 18, ff: F.mono, w: 500, fill: col, ls: 3, anchor: 'end', op: 0.5 });
   }
@@ -151,8 +151,56 @@ function icon(kind, x, y, col = C.mint, s = 1) {
     print: `<path d="M14 18V8h20v10" ${st}/><rect x="8" y="18" width="32" height="14" rx="3" ${st}/><rect x="14" y="28" width="20" height="12" rx="2" ${st}/><path d="M34 24h2" ${st}/>`,
     web: `<rect x="6" y="10" width="36" height="28" rx="4" ${st}/><path d="M6 19h36" ${st}/><circle cx="12" cy="14.5" r="1.6" fill="${col}"/><circle cx="18" cy="14.5" r="1.6" fill="${col}"/><path d="M14 27h8M14 32h20" ${st}/>`,
     code: `<path d="M16 16 8 24l8 8M32 16l8 8-8 8M27 12l-6 24" ${st}/>`,
+    spark: `<path d="M24 6l3.4 8.9L36 18l-8.6 3.1L24 30l-3.4-8.9L12 18l8.6-3.1z" ${st}/><path d="M36 30l1.6 4.2L42 35.8l-4.4 1.6L36 41.6l-1.6-4.2L30 35.8l4.4-1.6z" ${st}/>`,
   }[kind];
   return `<g transform="translate(${x} ${y}) scale(${s})">${p}</g>`;
+}
+
+/* ─────────────── social icons (24 grid, drawn solid) ─────────────── */
+// Instagram, LinkedIn and X — the three the user asked for. Drawn in the
+// brand's line style so they sit beside the handle without shouting.
+function social(kind, x, y, col = C.white, s = 1) {
+  const st = `stroke="${col}" stroke-width="1.9" fill="none" stroke-linecap="round" stroke-linejoin="round"`;
+  const p = {
+    instagram:
+      `<rect x="3" y="3" width="18" height="18" rx="5.2" ${st}/>` +
+      `<circle cx="12" cy="12" r="4.1" ${st}/>` +
+      `<circle cx="17.2" cy="6.8" r="1.25" fill="${col}" stroke="none"/>`,
+    linkedin:
+      `<rect x="3" y="3" width="18" height="18" rx="4" ${st}/>` +
+      `<path d="M7.6 10.4v6.1" ${st}/>` +
+      `<circle cx="7.6" cy="7.5" r="1.15" fill="${col}" stroke="none"/>` +
+      `<path d="M11.6 16.5v-3.3a2.4 2.4 0 0 1 4.8 0v3.3" ${st}/>` +
+      `<path d="M11.6 10.4v6.1" ${st}/>`,
+    x:
+      `<path d="M4.2 3.6h3.1l12.5 16.8h-3.1z" ${st}/>` +
+      `<path d="M20.1 3.6 13.2 11.4M10.9 14 3.9 20.4" ${st}/>`,
+  }[kind];
+  return `<g transform="translate(${x} ${y}) scale(${s})">${p}</g>`;
+}
+
+// The shared social row: three marks with the handle written beside them,
+// exactly as the user described for their flyers.
+function socialRow({ x, y, size, col = C.white, gap = 30, handleSize = 23, label = HANDLE, handleCol }) {
+  const icons = ['instagram', 'linkedin', 'x'];
+  let out = '';
+  let cx = x;
+  for (const i of icons) {
+    out += social(i, cx, y, col, size / 24);
+    cx += size + gap * 0.42;
+  }
+  out += text({
+    x: cx + gap * 0.9,
+    y: y + size * 0.74,
+    s: label,
+    size: handleSize,
+    ff: F.mono,
+    w: 500,
+    fill: handleCol || col,
+    ls: 1,
+    op: 0.85,
+  });
+  return { svg: out, width: cx - x + gap * 0.9 + label.length * handleSize * 0.60 };
 }
 
 /* ─────────────────────── post layouts ─────────────────────── */
@@ -171,7 +219,7 @@ function post01(S) { // brand intro / hero
   b += `<g>${lockupSvg({ x: cx - lw / 2, y: zoneTop, h: lh, variant: 'white' })}</g>`;
   const yRule = zoneTop + lh + 56 * k;
   b += line(cx - 40, yRule, cx + 40, yRule, C.mint, 3, 1);
-  b += text({ x: cx, y: yRule + 64 * k, s: 'EVERYTHING TECH · PRINTING · WEB · SOFTWARE', size: Math.round(24 * k), ff: F.mono, w: 500, fill: C.white, ls: 4, anchor: 'middle', op: 0.92 });
+  b += text({ x: cx, y: yRule + 64 * k, s: 'TECH · INNOVATE · IMPACT', size: Math.round(24 * k), ff: F.mono, w: 500, fill: C.white, ls: 4, anchor: 'middle', op: 0.92 });
   b += text({ x: cx, y: yRule + 130 * k, s: 'One lab. Every solution.', size: Math.round(46 * k), ff: F.head, w: 600, fill: C.white, anchor: 'middle', op: 0.95 });
   return { theme, body: b, glowId: '01' };
 }
@@ -183,13 +231,16 @@ function post02(S) { // services grid
   const y0 = M + 130;
   b += text({ x: M, y: y0, s: '02 — SERVICES', size: Math.round(21 * k), ff: F.mono, w: 600, fill: C.mint, ls: 6 });
   b += text({ x: M, y: y0 + 74 * k, s: 'What we do', size: Math.round(64 * k), ff: F.head, w: 700, fill: C.white });
-  b += text({ x: M, y: y0 + 128 * k, s: 'Everything tech, under one roof.', size: Math.round(26 * k), ff: F.body, w: 400, fill: C.white, op: 0.72 });
+  b += text({ x: M, y: y0 + 128 * k, s: 'Innovate. Build. Deliver.', size: Math.round(26 * k), ff: F.body, w: 400, fill: C.white, op: 0.72 });
 
+  // Printing was cut at the user's direction — it read as the weakest of the
+  // four and undercut the tech story. Capabilities carry the limb of the list
+  // keeping the deck at four cards.
   const cards = [
-    ['tech', 'TECH SOLUTIONS', 'EVERYTHING TECH'],
-    ['print', 'PRINTING', 'PRINT THAT POPS'],
+    ['tech', 'TECH SOLUTIONS', 'PLATFORMS · SYSTEMS'],
     ['web', 'WEB SOLUTIONS', 'DESIGN · BUILD · LAUNCH'],
-    ['code', 'SOFTWARE', 'APPS · TOOLS · SYSTEMS'],
+    ['code', 'SOFTWARE', 'APPS · TOOLS · INTEGRATION'],
+    ['spark', 'INNOVATION', 'ADVISE · PROTOTYPE · SHIP'],
   ];
   const top = y0 + 190 * k;
   const bottom = H - M - 130;
@@ -271,7 +322,7 @@ function post04(S) { // software
     ['$ icube init --custom', C.blue],
     ['> gathering requirements', C.white],
     ['> building software', C.white],
-    ['✓ web apps  ✓ tools  ✓ systems', C.mint],
+    ['> web apps  > tools  > systems', C.mint],
     ['$ ready_', C.mint],
   ];
   lines.forEach((L, i) => {
@@ -280,40 +331,43 @@ function post04(S) { // software
   return { theme, body: b, glowId: '04' };
 }
 
-function post05(S) { // printing — light theme
+function post05(S) { // impact — light theme
+  // Was the printing card. Replaced at the user's direction: printing read as
+  // the weakest limb of the story and undercut a tech-first identity. This now
+  // completes their own line — tech, innovate, impact.
   const { W, H, M, k } = S;
   const theme = 'light';
   let b = `<ellipse cx="${W * 0.85}" cy="${H * 0.15}" rx="${W * 0.5}" ry="${H * 0.3}" fill="url(#glow05)"/>`;
   const y0 = M + 140;
-  b += text({ x: M, y: y0, s: '05 — PRINTING', size: Math.round(21 * k), ff: F.mono, w: 600, fill: C.blue, ls: 6 });
-  b += text({ x: M, y: y0 + 78 * k, s: 'Print that', size: Math.round(62 * k), ff: F.head, w: 700, fill: C.navy });
-  b += text({ x: M, y: y0 + 150 * k, s: 'pops.', size: Math.round(62 * k), ff: F.head, w: 700, fill: C.blue });
-  b += text({ x: M, y: y0 + 210 * k, s: 'Vivid colour. Crisp detail.', size: Math.round(25 * k), ff: F.body, w: 400, fill: C.navy, op: 0.75 });
-  b += text({ x: M, y: y0 + 248 * k, s: 'On brand, every time.', size: Math.round(25 * k), ff: F.body, w: 400, fill: C.navy, op: 0.75 });
+  b += text({ x: M, y: y0, s: '05 — IMPACT', size: Math.round(21 * k), ff: F.mono, w: 600, fill: C.blue, ls: 6 });
+  b += text({ x: M, y: y0 + 78 * k, s: 'Built to', size: Math.round(62 * k), ff: F.head, w: 700, fill: C.navy });
+  b += text({ x: M, y: y0 + 150 * k, s: 'matter.', size: Math.round(62 * k), ff: F.head, w: 700, fill: C.blue });
+  b += text({ x: M, y: y0 + 210 * k, s: 'Real problems. Working software.', size: Math.round(25 * k), ff: F.body, w: 400, fill: C.navy, op: 0.75 });
+  b += text({ x: M, y: y0 + 248 * k, s: 'Results you can point at.', size: Math.round(25 * k), ff: F.body, w: 400, fill: C.navy, op: 0.75 });
 
-  // stacked sheets — centered in the region between body text and footer
+  // three rising bars — measurable impact, drawn in brand colours
   const cx = W / 2;
   const regionTop = y0 + 248 * k + 44;
-  const regionBottom = H - M - 120;
-  const sw = W * (S.key === 'story' ? 0.70 : S.key === 'por' ? 0.60 : 0.54);
-  const sh = sw * 0.62;
-  const zoneTop = (regionTop + regionBottom) / 2; // vertical center of stack
-  const rot = (deg, dx, dy, inner) => `<g transform="translate(${cx + dx} ${zoneTop + dy}) rotate(${deg}) translate(${-sw / 2} ${-sh / 2})">${inner}</g>`;
-  b += rot(-7, -18, 14, rect(0, 0, sw, sh, { r: 18, fill: C.navy }));
-  b += rot(4, 16, 6, rect(0, 0, sw, sh, { r: 18, fill: C.blue }));
-  b += rot(-1.5, 0, -6, rect(0, 0, sw, sh, { r: 18, fill: C.white, stroke: C.navy, sw: 1.5, op: 1 }) +
-    rect(0, 0, sw, sh, { r: 18, fill: 'none' }) +
-    // print content on top sheet
-    rect(36, 40, sw * 0.5, 26, { r: 8, fill: C.navy, op: 0.9 }) +
-    rect(36, 86, sw * 0.72, 12, { r: 6, fill: C.navy, op: 0.25 }) +
-    rect(36, 110, sw * 0.6, 12, { r: 6, fill: C.navy, op: 0.25 }) +
-    [C.blue, C.mint, C.navy, C.ink].map((col, i) => rect(36 + i * 54, sh - 76, 44, 30, { r: 6, fill: col })).join('') +
-    markSvg({ x: sw - 96, y: sh - 96, h: 56, fill: C.blue })
-  );
-  // registration / crop marks at stack bounds
-  const cm = (x, y, sx, sy) => line(x, y, x + sx * 34, y, C.navy, 2, 0.5) + line(x, y, x, y + sy * 34, C.navy, 2, 0.5);
-  const yTop = zoneTop - sh / 2 - 36, yBot = zoneTop + sh / 2 + 36;
-  b += cm(M, yTop, 1, 1) + cm(W - M, yTop, -1, 1) + cm(M, yBot, 1, -1) + cm(W - M, yBot, -1, -1);
+  const regionBottom = H - M - 130;
+  const chartH = Math.min((regionBottom - regionTop) * 0.82, H * 0.30);
+  const baseY = regionTop + (regionBottom - regionTop) / 2 + chartH / 2;
+  const barW = Math.min(W * 0.13, 132);
+  const gap = barW * 0.55;
+  const totalW = barW * 3 + gap * 2;
+  const x0 = cx - totalW / 2;
+  const cols = [C.blue, C.navy, C.mint];
+  const heights = [0.46, 0.70, 1.0];
+  heights.forEach((hf, i) => {
+    const bh = chartH * hf;
+    const x = x0 + i * (barW + gap);
+    b += rect(x, baseY - bh, barW, bh, { r: Math.min(16, barW * 0.16), fill: cols[i] });
+    b += text({
+      x: x + barW / 2, y: baseY - bh - 20, s: ['01', '02', '03'][i],
+      size: Math.round(20 * k), ff: F.mono, w: 600, fill: C.navy, ls: 3, anchor: 'middle', op: 0.45,
+    });
+  });
+  b += line(x0 - 20, baseY + 1, x0 + totalW + 20, baseY + 1, C.navy, 2, 0.30);
+  b += text({ x: cx, y: baseY + 52, s: 'SHIP · MEASURE · IMPROVE', size: Math.round(19 * k), ff: F.mono, w: 500, fill: C.navy, ls: 4, anchor: 'middle', op: 0.55 });
   return { theme, body: b, glowId: '05' };
 }
 
@@ -329,15 +383,20 @@ function post06(S) { // CTA
   const ty = H * (S.key === 'story' ? 0.30 : 0.24) + mh + 90 * k;
   b += text({ x: cx, y: ty, s: "Let's build", size: Math.round(74 * k), ff: F.head, w: 800, fill: C.white, anchor: 'middle' });
   b += text({ x: cx, y: ty + 84 * k, s: 'together.', size: Math.round(74 * k), ff: F.head, w: 800, fill: C.mint, anchor: 'middle' });
-  b += text({ x: cx, y: ty + 156 * k, s: 'TECH · PRINTING · WEB · SOFTWARE', size: Math.round(22 * k), ff: F.mono, w: 500, fill: C.white, ls: 5, anchor: 'middle', op: 0.85 });
-  // big chips
+  b += text({ x: cx, y: ty + 156 * k, s: 'TECH · INNOVATE · IMPACT', size: Math.round(22 * k), ff: F.mono, w: 500, fill: C.white, ls: 5, anchor: 'middle', op: 0.85 });
+  // No "DM US" — the user reads it as a weak ask. Three social marks with the
+  // handle written beside them, the way their flyers do it.
+  const row = socialRow({
+    x: 0,
+    y: 0,
+    size: Math.round(30 * k),
+    col: C.white,
+    handleSize: Math.round(27 * k),
+    gap: 34,
+    handleCol: C.mint,
+  });
   const cy = ty + 240 * k;
-  const fs = Math.round(26 * k);
-  const w1 = pillW('DM US', fs, 3), w2 = pillW('LINK IN BIO', fs, 3);
-  const total = w1 + 18 + w2;
-  b += pill(cx - total / 2 + w1, cy, 'DM US', { fill: C.white, textColor: C.navy, h: 74, fs, ff: F.mono, w: 700, ls: 3 });
-  b += pill(cx + total / 2, cy, 'LINK IN BIO', { stroke: C.white, textColor: C.white, h: 74, fs, ff: F.mono, w: 700, ls: 3 });
-  b += text({ x: cx, y: cy + 130 * k, s: HANDLE, size: Math.round(30 * k), ff: F.mono, w: 600, fill: C.white, anchor: 'middle', ls: 1 });
+  b += `<g transform="translate(${cx - row.width / 2} ${cy})">${row.svg}</g>`;
   return { theme, body: b, glowId: '06', footerPills: false };
 }
 
@@ -346,7 +405,7 @@ const POSTS = [
   { id: '02-services', fn: post02 },
   { id: '03-web', fn: post03 },
   { id: '04-software', fn: post04 },
-  { id: '05-printing', fn: post05 },
+  { id: '05-impact', fn: post05 },
   { id: '06-cta', fn: post06 },
 ];
 
