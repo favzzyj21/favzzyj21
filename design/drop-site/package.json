@@ -1,0 +1,10 @@
+{
+  "name": "icube-long-recording-drop",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Drop long meeting recordings straight to iCube",
+  "scripts": {
+    "dev": "npx serve . -l 8092",
+    "deploy": "npx vercel --prod"
+  }
+}
