@@ -7,20 +7,30 @@ cd "$(dirname "$0")/.."
 FF=${FFMPEG:-ffmpeg}
 TMP=$(mktemp -d)
 FADE=${FADE:-1.4}
+# voice is slowed with the picture so VO and visuals stay locked (1/1.08 = .96)
+VO_DELAY_MS=${VO_DELAY_MS:-680}
+VO_START_S=$(awk -v d="$VO_DELAY_MS" 'BEGIN{printf "%.2f", d/1000}')
+VO_TEMPO=${VO_TEMPO:-0.96}
 trap 'rm -rf "$TMP"' EXIT
 
 mix_one () { # $1=id $2=duration $3=vo $4=bed
   local id="$1" dur="$2" vo="$3" bed="$4"
   local FADE_ST; FADE_ST=$(awk -v d="$dur" -v f="$FADE" 'BEGIN{printf "%.2f", d-f}')
-  local src="reels/${id}-reel.mp4"
+  local out="reels/${id}-reel.mp4"
+  # always mix from the pristine video; keep a backup so re-runs never stack audio
+  mkdir -p reels/_clean
+  if [ ! -f "reels/_clean/${id}-reel.mp4" ]; then
+    cp "$out" "reels/_clean/${id}-reel.mp4"
+  fi
+  local src="reels/_clean/${id}-reel.mp4"
   echo "== $id ($dur s)"
 
   # Pass A: VO (delayed 0.6s for breath) + sidechain-ducked bed -> compressed pre-master
   "$FF" -y -hide_banner -loglevel error \
     -i "$src" -i "$vo" -i "$bed" \
     -filter_complex "\
-[1:a]aformat=sample_rates=48000:channel_layouts=mono,volume=1.0,adelay=600,\
-apad=pad_dur=6,atrim=0:${dur},asplit=2[vod][vos];\
+[1:a]aformat=sample_rates=48000:channel_layouts=mono,volume=1.0,atempo=${VO_TEMPO},adelay=${VO_DELAY_MS},\
+apad=whole_dur=${dur},asplit=2[vod][vos];\
 [2:a]aformat=sample_rates=48000:channel_layouts=stereo,volume=0.30,highpass=f=55,\
 apad=pad_dur=6,atrim=0:${dur}[bed];\
 [bed][vos]sidechaincompress=threshold=0.035:ratio=8:attack=12:release=320:makeup=1[duck];\
@@ -42,21 +52,23 @@ alimiter=limit=0.95:level=false,apad=whole_dur=${dur},atrim=0:${dur},asetpts=N/S
   echo "   measured: I=${mi} LUFS TP=${mt} dBTP LRA=${ml}"
   if [ -z "$mi" ] || [ "$mi" = "-inf" ]; then echo "   !! measurement failed"; exit 1; fi
 
-  # Pass C: dynamic loudnorm to -14 LUFS / -1 dBTP (crest factor is too high for
-  # linear gain), then encode AAC and copy the video stream untouched
+  # Pass C: dynamic loudnorm to -14 LUFS / -1 dBTP, encode AAC, copy video.
+  # NOTE: no -shortest here - the muxed file must match the video length exactly,
+  # and the audio is already exactly ${dur}s from pass A.
   "$FF" -y -hide_banner -loglevel error \
     -i "$src" -i "$TMP/${id}-pre.wav" \
-    -map 0:v:0 -map 1:a:0 \
+    -filter_complex "[1:a]loudnorm=I=-14:TP=-1.0:LRA=11,alimiter=limit=0.891:level=false,aresample=48000[a]" \
+    -map 0:v:0 -map "[a]" \
     -c:v copy \
-    -af "loudnorm=I=-14:TP=-1.0:LRA=11,alimiter=limit=0.891:level=false,aresample=48000" \
     -c:a aac -b:a 192k -ar 48000 -ac 2 \
-    -shortest -movflags +faststart \
-    "$TMP/${id}.mp4"
+    -t ${dur} \
+    -movflags +faststart \
+    "$TMP/${id}-final.mp4"
 
-  mv "$TMP/${id}.mp4" "$src"
-  echo "   -> $src"
+  mv "$TMP/${id}-final.mp4" "$out"
+  echo "   -> $out"
 }
 
-mix_one 01-technology-partner 14.0 reels/vo1.mp3 reels/bed1.wav
-mix_one 02-community-appreciation 12.0 reels/vo2.mp3 reels/bed2.wav
+mix_one 01-technology-partner 15.12 reels/vo1.mp3 reels/bed1.wav
+mix_one 02-community-appreciation 12.96 reels/vo2.mp3 reels/bed2.wav
 echo "mix complete"

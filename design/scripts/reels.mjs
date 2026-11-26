@@ -13,6 +13,9 @@ const ASSETS = path.join(ROOT, 'assets');
 const OUT = path.join(ROOT, 'reels');
 const FFMPEG = process.env.FFMPEG || 'ffmpeg';
 const W = 1080, H = 1920, FPS = 30;
+// Playback pacing. Everything (motion + voice) is authored at FPS and slowed by
+// this factor together, so audio and visuals stay frame-locked in sync.
+const TIME_SCALE = 1.08;
 
 const C = { ink: '#03050a', navy: '#06195b', blue: '#3c6bff', mint: '#08deaa', white: '#ffffff' };
 const F = { head: 'Poppins', body: 'Space Grotesk', mono: 'JetBrains Mono' };
@@ -354,8 +357,8 @@ function frameSvg(scene, t) {
 }
 
 const REELS = {
-  '01-technology-partner': { duration: 14, scene: scene1, coverT: 1.6 },
-  '02-community-appreciation': { duration: 12, scene: scene2, coverT: 1.8 },
+  '01-technology-partner': { duration: Math.round(14 * TIME_SCALE * 100) / 100, scene: scene1, coverT: 1.6 },
+  '02-community-appreciation': { duration: Math.round(12 * TIME_SCALE * 100) / 100, scene: scene2, coverT: 1.8 },
 };
 const CHUNK = 150;
 
@@ -380,7 +383,7 @@ function renderChunk(id, start, end) {
   for (let f = start; f < Math.min(end, total); f++) {
     const p = path.join(framesDir, `f${String(f).padStart(4, '0')}.png`);
     if (frameValid(p)) continue;
-    const svg = frameSvg(scene, f / FPS);
+    const svg = frameSvg(scene, (f / FPS) / TIME_SCALE);
     const png = new Resvg(svg, { font: { fontFiles: FONTS, loadSystemFonts: false, defaultFontFamily: 'Space Grotesk' } }).render().asPng();
     fs.writeFileSync(p, png);
     rendered++;
@@ -397,7 +400,7 @@ function encodeReel(id) {
     const p = path.join(framesDir, `f${String(f).padStart(4, '0')}.png`);
     if (!frameValid(p)) throw new Error(`missing/corrupt frame ${f} for ${id}`);
   }
-  const coverSvg = frameSvg(REELS[id].scene, coverT);
+  const coverSvg = frameSvg(REELS[id].scene, coverT / TIME_SCALE);
   fs.writeFileSync(path.join(OUT, `${id}-cover.png`), new Resvg(coverSvg, { font: { fontFiles: FONTS, loadSystemFonts: false } }).render().asPng());
   const out = path.join(OUT, `${id}-reel.mp4`);
   const args = ['-y', '-framerate', String(FPS), '-i', path.join(framesDir, 'f%04d.png'),
