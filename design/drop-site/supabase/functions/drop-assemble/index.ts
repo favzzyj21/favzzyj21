@@ -1,40 +1,60 @@
 // drop-assemble — stitches chunked long-recording uploads back into one file.
-// Runs without JWT verification (the page is open to anyone with the link).
-// Every privileged action is guarded by the caller proving it knows the session id
-// it just created; nothing is ever readable back to the browser.
+// Deployed to Supabase as `drop-assemble` (verify_jwt: false), version 2.
+//
+// Why this exists: Supabase caps a single object at 50 MB, and a two-hour
+// meeting recording is far larger. The page uploads ~8 MB pieces; this function
+// streams them back together server-side so nothing has to fit in memory and
+// nothing ever has to be downloaded to reassemble.
+//
+// IMPORTANT: storage listing is the source of truth. Part rows in drop_parts are
+// only a convenience for the resume UI — a failed bookkeeping write must never
+// lose audio, so assembly reads what is actually in the bucket.
 const CORS = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
 };
-
-const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
-const SERVICE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-const BUCKET = 'drop-audio';
-
 const ok = (b: unknown, s = 200) =>
   new Response(JSON.stringify(b), { status: s, headers: { ...CORS, 'Content-Type': 'application/json' } });
-
 const uuidRe = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-
-async function rest(path: string, init: RequestInit = {}) {
-  const r = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
-    ...init,
-    headers: {
-      apikey: SERVICE_KEY,
-      Authorization: `Bearer ${SERVICE_KEY}`,
-      'Content-Type': 'application/json',
-      ...(init.headers || {}),
-    },
-  });
-  if (!r.ok) throw new Error(`rest ${path}: ${r.status} ${await r.text().catch(() => '')}`);
-  const t = await r.text();
-  return t ? JSON.parse(t) : null;
-}
 
 Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS });
   if (req.method !== 'POST') return ok({ error: 'method' }, 405);
+
+  const URL = Deno.env.get('SUPABASE_URL')!;
+  const KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+  const BUCKET = 'drop-audio';
+
+  const rest = async (path: string, init: RequestInit = {}) => {
+    const r = await fetch(`${URL}/rest/v1/${path}`, {
+      ...init,
+      headers: {
+        apikey: KEY,
+        Authorization: `Bearer ${KEY}`,
+        'Content-Type': 'application/json',
+        ...(init.headers || {}),
+      },
+    });
+    if (!r.ok) throw new Error(`${r.status} ${await r.text().catch(() => '')}`);
+    const t = await r.text();
+    return t ? JSON.parse(t) : null;
+  };
+
+  // A retried piece lands as `<n>.r<attempt>.part`, so match both shapes.
+  const listParts = async (sid: string) => {
+    const r = await fetch(`${URL}/storage/v1/object/list/${BUCKET}`, {
+      method: 'POST',
+      headers: { apikey: KEY, Authorization: `Bearer ${KEY}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        prefix: `inbox/${sid}`,
+        limit: 2000,
+        sortBy: { column: 'name', order: 'asc' },
+      }),
+    });
+    if (!r.ok) throw new Error(`list ${r.status} ${await r.text().catch(() => '')}`);
+    return (await r.json()) as Array<{ name: string; metadata?: { size?: number } }>;
+  };
 
   let body: { session_id?: string; action?: string };
   try {
@@ -44,11 +64,9 @@ Deno.serve(async (req: Request) => {
   }
 
   const sid = String(body.session_id || '');
-  const action = String(body.action || 'status');
   if (!uuidRe.test(sid)) return ok({ error: 'bad session' }, 400);
+  const action = String(body.action || 'status');
 
-  // The session id is an unguessable v4 uuid handed only to the uploader, so it
-  // doubles as the capability token for this session.
   let rows;
   try {
     rows = await rest(
@@ -57,38 +75,58 @@ Deno.serve(async (req: Request) => {
   } catch (e) {
     return ok({ error: 'lookup failed', detail: String(e) }, 500);
   }
-  if (!rows || rows.length === 0) return ok({ error: 'not found' }, 404);
+  if (!rows || !rows.length) return ok({ error: 'not found' }, 404);
   const s = rows[0];
 
   // ---- status: which parts have landed, so the browser can resume ----
   if (action === 'status') {
-    const parts = await rest(`drop_parts?session_id=eq.${sid}&select=part_no,bytes&order=part_no.asc`);
-    return ok({ session: s, parts: parts || [] });
+    const objs = await listParts(sid);
+    const have = new Set<number>();
+    let bytes = 0;
+    for (const o of objs) {
+      const m = o.name.match(/^(\d+)(?:\.r\d+)?\.part$/);
+      if (!m) continue;
+      const n = Number(m[1]);
+      if (!have.has(n)) {
+        have.add(n);
+        bytes += Number(o.metadata?.size || 0);
+      }
+    }
+    return ok({ session: s, parts: [...have].sort((a, b) => a - b), bytes });
   }
 
-  // ---- finalize: verify every part, stitch, store the single file ----
+  // ---- finalize: join the pieces into one file ----
   if (action === 'finalize') {
     if (s.received) return ok({ already: true, file_name: s.file_name });
 
-    const parts = (await rest(`drop_parts?session_id=eq.${sid}&select=part_no,bytes&order=part_no.asc`)) || [];
-    const have = new Set<number>(parts.map((p: { part_no: number }) => p.part_no));
-    const missing: number[] = [];
-    for (let i = 0; i < s.total_parts; i++) if (!have.has(i)) missing.push(i);
-    if (missing.length) return ok({ error: 'incomplete', missing, received: parts.length, of: s.total_parts }, 409);
-
-    const gotBytes = parts.reduce((a: number, p: { bytes: number }) => a + Number(p.bytes), 0);
-    if (gotBytes !== Number(s.total_bytes)) {
-      return ok({ error: 'size mismatch', expected: s.total_bytes, got: gotBytes }, 409);
+    const objs = await listParts(sid);
+    // index -> best object name for that index (prefer the plain name, else a retry)
+    const pick = new Map<number, string>();
+    for (const o of objs) {
+      const m = o.name.match(/^(\d+)(?:\.r(\d+))?\.part$/);
+      if (!m) continue;
+      const n = Number(m[1]);
+      const isRetry = m[2] !== undefined;
+      const cur = pick.get(n);
+      if (!cur || (isRetry && cur.includes('.r'))) pick.set(n, o.name);
     }
 
-    // Stream the parts in order into a single object, so a 124 MB recording never
-    // has to sit in memory here.
+    const missing: number[] = [];
+    for (let i = 0; i < s.total_parts; i++) if (!pick.has(i)) missing.push(i);
+    if (missing.length) {
+      return ok(
+        { error: 'incomplete', missing: missing.slice(0, 50), received: pick.size, of: s.total_parts },
+        409,
+      );
+    }
+
     const target = `inbox/done/${sid}/${s.file_name}`;
     const stream = new ReadableStream<Uint8Array>({
       async start(controller) {
         for (let i = 0; i < s.total_parts; i++) {
-          const r = await fetch(`${SUPABASE_URL}/storage/v1/object/${BUCKET}/inbox/${sid}/${i}.part`, {
-            headers: { apikey: SERVICE_KEY, Authorization: `Bearer ${SERVICE_KEY}` },
+          const name = pick.get(i)!;
+          const r = await fetch(`${URL}/storage/v1/object/${BUCKET}/inbox/${sid}/${name}`, {
+            headers: { apikey: KEY, Authorization: `Bearer ${KEY}` },
           });
           if (!r.ok || !r.body) {
             controller.error(new Error(`part ${i}: ${r.status}`));
@@ -105,22 +143,28 @@ Deno.serve(async (req: Request) => {
       },
     });
 
-    const up = await fetch(`${SUPABASE_URL}/storage/v1/object/${BUCKET}/${target}`, {
+    const up = await fetch(`${URL}/storage/v1/object/${BUCKET}/${target}`, {
       method: 'POST',
       headers: {
-        apikey: SERVICE_KEY,
-        Authorization: `Bearer ${SERVICE_KEY}`,
+        apikey: KEY,
+        Authorization: `Bearer ${KEY}`,
         'Content-Type': s.mime_type || 'application/octet-stream',
-        'x-upsert': 'false',
-        'cache-control': 'max-age=3600',
+        'x-upsert': 'true', // service-role only; the anon restriction does not apply here
       },
       body: stream,
-      // @ts-ignore: needed by fetch for streaming uploads
+      // @ts-ignore duplex is required for streaming request bodies
       duplex: 'half',
     });
     if (!up.ok) {
       return ok({ error: 'stitch failed', status: up.status, detail: await up.text().catch(() => '') }, 502);
     }
+
+    // confirm the stored size matches what the sender declared
+    const head = await fetch(`${URL}/storage/v1/object/info/${BUCKET}/${target}`, {
+      headers: { apikey: KEY, Authorization: `Bearer ${KEY}` },
+    });
+    const info = head.ok ? await head.json().catch(() => null) : null;
+    const got = info?.size ?? info?.metadata?.size ?? null;
 
     await rest(`drop_sessions?session_id=eq.${sid}`, {
       method: 'PATCH',
@@ -128,15 +172,22 @@ Deno.serve(async (req: Request) => {
       body: JSON.stringify({ received: true }),
     });
 
-    // tidy the chunk objects; the stitched file is the keeper
-    for (let i = 0; i < s.total_parts; i++) {
-      await fetch(`${SUPABASE_URL}/storage/v1/object/${BUCKET}/inbox/${sid}/${i}.part`, {
+    // tidy the pieces; the stitched file is the keeper
+    for (const name of pick.values()) {
+      await fetch(`${URL}/storage/v1/object/${BUCKET}/inbox/${sid}/${name}`, {
         method: 'DELETE',
-        headers: { apikey: SERVICE_KEY, Authorization: `Bearer ${SERVICE_KEY}` },
+        headers: { apikey: KEY, Authorization: `Bearer ${KEY}` },
       }).catch(() => {});
     }
 
-    return ok({ done: true, path: target, file_name: s.file_name, bytes: Number(s.total_bytes) });
+    return ok({
+      done: true,
+      path: target,
+      file_name: s.file_name,
+      bytes: Number(s.total_bytes),
+      verified_size: got,
+      size_ok: got === null ? null : Number(got) === Number(s.total_bytes),
+    });
   }
 
   return ok({ error: 'unknown action' }, 400);

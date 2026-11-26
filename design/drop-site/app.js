@@ -275,21 +275,27 @@
     for (let attempt = 0; attempt <= RETRIES; attempt++) {
       if (attempt) await sleep(Math.min(1200 * 2 ** (attempt - 1), 9000));
       try {
-        const r = await fetch(`${STORE}/${BUCKET}/${path}`, {
+        // No upsert header on purpose: upsert makes Storage demand SELECT + UPDATE
+        // rights on the object, and those are denied by design so nobody can read
+        // another person's audio. A fresh path per retry keeps us on plain INSERT.
+        const partPath = attempt ? `inbox/${session.id}/${index}.r${attempt}.part` : path;
+        const r = await fetch(`${STORE}/${BUCKET}/${partPath}`, {
           method: 'POST',
           headers: {
             apikey: KEY,
             Authorization: `Bearer ${KEY}`,
             'Content-Type': 'application/octet-stream',
-            'x-upsert': 'true',
           },
           body: blob,
         });
-        // 409 = already there from an earlier attempt; that's a win, not an error
-        if (r.ok || r.status === 409) return;
+        // 409 = an identical earlier attempt already landed; that is success for us
+        if (r.ok || r.status === 409) {
+          if (attempt) await recordPart(index);
+          return;
+        }
         const t = await r.text().catch(() => '');
         lastErr = new Error(`part ${index}: ${r.status} ${t}`);
-        if (r.status === 400 || r.status === 401 || r.status === 403) break; // policy — don't burn retries
+        if (r.status === 400 || r.status === 401) break;   // policy — retrying won't help
       } catch (e) {
         lastErr = e;
       }
@@ -297,10 +303,11 @@
     throw lastErr || new Error(`part ${index} failed`);
   }
 
-  async function recordPart(index, bytes) {
+  async function recordPart(index) {
+    const bytes = Math.min((index + 1) * CHUNK, session.total_bytes) - index * CHUNK;
     const r = await api('drop_parts', {
       method: 'POST',
-      headers: { Prefer: 'resolution=merge-duplicates,return=minimal' },
+      headers: { Prefer: 'return=minimal' },
       body: JSON.stringify({ session_id: session.id, part_no: index, bytes }),
     });
     if (!r.ok && r.status !== 409) {
@@ -346,8 +353,7 @@
           const index = queue[my];
           paintChunks(done, index);
           await putPart(index);
-          const bytes = Math.min(index * CHUNK + CHUNK, session.total_bytes) - index * CHUNK;
-          await recordPart(index, bytes);
+          await recordPart(index);
           sent.add(index);
           done++;
           progress(done, total, `${done} of ${total} pieces`);

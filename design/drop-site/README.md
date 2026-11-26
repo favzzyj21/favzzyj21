@@ -117,6 +117,25 @@ npx serve . -l 8092
 
 ---
 
+## The bug that broke the first version
+
+If uploads fail with `new row violates row-level security policy`, the cause is
+almost always **`x-upsert: true`**. Upsert makes Storage check INSERT **and**
+SELECT **and** UPDATE policies, and the SELECT/UPDATE policies here are
+deliberately `false` so that no visitor can read another's audio.
+
+The page therefore uploads with a plain INSERT and no upsert header. When a
+retried piece would collide, it lands under a new name (`3.r1.part`) and the
+assemble function resolves it back to part `3`. Verified end to end: a 3-part
+file with a retried middle piece reassembled to the exact original bytes.
+
+Two other traps worth remembering:
+
+- `chunk_size` in the INSERT policy must be between 1 MB and 16 MB. A tiny value
+  (used in an early test) is rejected by the policy, not by the app.
+- Direct `DELETE FROM storage.objects` is blocked by Supabase. Remove objects
+  through the Storage API or the dashboard.
+
 ## Honest limits
 
 - **Phone screens sleep.** A 2-hour upload is a long time to keep a tab
