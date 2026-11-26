@@ -1,0 +1,10 @@
+{
+  "name": "icube-voice-feedback",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Send a voice note with corrections to iCube",
+  "scripts": {
+    "dev": "npx serve . -l 8090",
+    "deploy": "npx vercel --prod"
+  }
+}

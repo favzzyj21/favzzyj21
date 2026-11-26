@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<title>Send a Voice Note — iCube</title>
+<meta name="description" content="Record or upload a voice note with corrections and feedback for iCube." />
+<meta name="theme-color" content="#03050a" />
+<link rel="icon" href="favicon.png" sizes="256x256" />
+<link rel="apple-touch-icon" href="apple-touch-icon.png" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta property="og:title" content="Send a Voice Note — iCube" />
+<meta property="og:description" content="Record or upload a voice note with corrections and feedback for iCube." />
+<meta property="og:type" content="website" />
+<meta name="twitter:card" content="summary" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,400;0,600;0,700;0,800;1,700;1,800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --ink:#03050a; --navy:#06195b; --blue:#3c6bff; --mint:#08deaa; --white:#fff;
+    --dim:rgba(255,255,255,.62); --line:rgba(255,255,255,.14);
+    --card:rgba(255,255,255,.045);
+    --head:'Poppins',system-ui,-apple-system,sans-serif;
+    --mono:'JetBrains Mono',ui-monospace,monospace;
+    --safe-t:env(safe-area-inset-top,0px);
+    --safe-b:env(safe-area-inset-bottom,0px);
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;padding:0}
+  body{
+    background:var(--ink); color:var(--white); font-family:var(--head);
+    min-height:100dvh; overflow-x:hidden;
+    padding:calc(24px + var(--safe-t)) 20px calc(32px + var(--safe-b));
+    display:flex; flex-direction:column; align-items:center;
+    -webkit-font-smoothing:antialiased;
+  }
+  /* ambient brand glow + subtle grid, echoing the reels */
+  body::before{
+    content:''; position:fixed; inset:0; z-index:-2; pointer-events:none;
+    background:
+      radial-gradient(ellipse 60% 40% at 82% 8%, rgba(60,107,255,.30), transparent 70%),
+      radial-gradient(ellipse 55% 40% at 10% 92%, rgba(8,222,170,.13), transparent 70%),
+      var(--ink);
+  }
+  body::after{
+    content:''; position:fixed; inset:0; z-index:-1; pointer-events:none;
+    background-image:linear-gradient(rgba(255,255,255,.045) 1px, transparent 1px),
+                     linear-gradient(90deg, rgba(255,255,255,.045) 1px, transparent 1px);
+    background-size:135px 135px;
+    mask-image:radial-gradient(ellipse 80% 70% at 50% 35%, #000 20%, transparent 85%);
+    -webkit-mask-image:radial-gradient(ellipse 80% 70% at 50% 35%, #000 20%, transparent 85%);
+  }
+  .wrap{width:100%; max-width:560px; display:flex; flex-direction:column; gap:26px}
+
+  /* header */
+  header{display:flex; flex-direction:column; gap:22px; padding-top:8px}
+  .logo{width:74px; height:auto; display:block; filter:drop-shadow(0 6px 22px rgba(60,107,255,.35))}
+  .eyebrow{
+    font-family:var(--mono); font-size:11.5px; font-weight:500; letter-spacing:.30em;
+    text-transform:uppercase; color:var(--mint); margin:0;
+  }
+  h1{
+    font-size:clamp(30px,8.2vw,40px); line-height:1.06; font-weight:800;
+    letter-spacing:-.03em; margin:0;
+  }
+  h1 em{
+    font-style:italic; font-weight:800;
+    background:linear-gradient(92deg,var(--blue),var(--mint));
+    -webkit-background-clip:text; background-clip:text; color:transparent;
+  }
+  .sub{color:var(--dim); font-size:15px; line-height:1.55; margin:0; max-width:46ch}
+
+  /* card */
+  .card{
+    background:var(--card); border:1px solid var(--line); border-radius:22px;
+    padding:22px; display:flex; flex-direction:column; gap:18px;
+    backdrop-filter:blur(14px); -webkit-backdrop-filter:blur(14px);
+  }
+  .field{display:flex; flex-direction:column; gap:9px}
+  .label{
+    font-family:var(--mono); font-size:11px; letter-spacing:.16em; text-transform:uppercase;
+    color:rgba(255,255,255,.50); font-weight:500;
+  }
+  .label span{color:rgba(255,255,255,.28); text-transform:none; letter-spacing:0; font-family:var(--head)}
+
+  input[type=text], textarea, select{
+    font-family:var(--head); font-size:16px; color:var(--white);
+    background:rgba(0,0,0,.34); border:1px solid var(--line); border-radius:13px;
+    padding:13px 15px; width:100%; outline:none; transition:border-color .18s, box-shadow .18s;
+  }
+  input[type=text]:focus, textarea:focus, select:focus{
+    border-color:rgba(60,107,255,.85); box-shadow:0 0 0 3.5px rgba(60,107,255,.16);
+  }
+  textarea{resize:vertical; min-height:76px; line-height:1.5}
+  input::placeholder, textarea::placeholder{color:rgba(255,255,255,.30)}
+  select{appearance:none; -webkit-appearance:none;
+    background-image:url("data:image/svg+xml;charset=utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='9' viewBox='0 0 14 9'%3E%3Cpath d='M1 1l6 6 6-6' stroke='%23ffffff' stroke-opacity='.55' stroke-width='2' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+    background-repeat:no-repeat; background-position:right 16px center; padding-right:42px;
+  }
+  select option{background:#0a0e18; color:#fff}
+
+  /* mode switch */
+  .switch{
+    display:grid; grid-template-columns:1fr 1fr; gap:6px; padding:5px;
+    background:rgba(0,0,0,.34); border:1px solid var(--line); border-radius:15px;
+  }
+  .switch button{
+    font-family:var(--mono); font-size:11.5px; letter-spacing:.10em; text-transform:uppercase;
+    font-weight:700; color:rgba(255,255,255,.55); background:transparent; border:0;
+    padding:11px 8px; border-radius:11px; cursor:pointer; transition:all .18s;
+  }
+  .switch button[aria-selected=true]{
+    background:var(--white); color:var(--navy);
+    box-shadow:0 4px 16px rgba(0,0,0,.35);
+  }
+
+  /* recorder */
+  .rec-panel{display:flex; flex-direction:column; gap:16px; align-items:center; padding:8px 0 4px}
+  .rec-btn{
+    position:relative; width:92px; height:92px; border-radius:50%; border:0; cursor:pointer;
+    background:linear-gradient(145deg,#fff,#dfe6ff); display:grid; place-items:center;
+    box-shadow:0 10px 34px rgba(60,107,255,.40); transition:transform .16s;
+  }
+  .rec-btn:active{transform:scale(.95)}
+  .rec-btn .dot{width:28px; height:28px; border-radius:8px; background:#e2263c; transition:all .22s}
+  .rec-btn.recording{background:linear-gradient(145deg,#ff4b5c,#d81b34); box-shadow:0 10px 34px rgba(226,38,60,.48)}
+  .rec-btn.recording .dot{width:26px; height:26px; border-radius:5px; background:#fff}
+  .rec-btn:disabled{opacity:.45; cursor:not-allowed}
+  .rec-btn.recording{animation:pulse 1.8s ease-out infinite}
+  @keyframes pulse{
+    0%{box-shadow:0 10px 34px rgba(226,38,60,.48),0 0 0 0 rgba(226,38,60,.42)}
+    70%{box-shadow:0 10px 34px rgba(226,38,60,.48),0 0 0 22px rgba(226,38,60,0)}
+    100%{box-shadow:0 10px 34px rgba(226,38,60,.48),0 0 0 0 rgba(226,38,60,0)}
+  }
+  .timer{font-family:var(--mono); font-size:31px; font-weight:700; letter-spacing:.03em; font-variant-numeric:tabular-nums}
+  .rec-hint{font-size:12.5px; color:rgba(255,255,255,.42); text-align:center; line-height:1.5; min-height:18px}
+
+  /* level meter */
+  .meter{display:flex; align-items:flex-end; gap:3px; height:30px; width:100%; max-width:260px; justify-content:center}
+  .meter i{flex:1; max-width:7px; background:linear-gradient(180deg,var(--mint),var(--blue));
+    border-radius:2px; min-height:3px; transition:height .075s linear; opacity:.9}
+  .meter.idle i{height:3px !important; opacity:.24}
+
+  /* playback */
+  .player{display:flex; flex-direction:column; gap:12px; width:100%}
+  audio{width:100%; height:42px; border-radius:11px}
+  .file-row{
+    display:flex; align-items:center; gap:12px; padding:13px 15px;
+    background:rgba(0,0,0,.34); border:1px dashed rgba(255,255,255,.22); border-radius:13px;
+  }
+  .file-row svg{flex-shrink:0; opacity:.65}
+  .file-row .ftxt{flex:1; min-width:0}
+  .file-row .fname{font-size:13.5px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+  .file-row .fsize{font-family:var(--mono); font-size:11px; color:rgba(255,255,255,.40); margin-top:3px}
+  .file-row label{font-family:var(--mono); font-size:11px; letter-spacing:.09em; text-transform:uppercase;
+    color:var(--mint); cursor:pointer; font-weight:700; white-space:nowrap}
+  input[type=file]{position:absolute; width:1px; height:1px; opacity:0; overflow:hidden}
+
+  /* submit */
+  .submit{
+    width:100%; border:0; border-radius:14px; padding:17px 20px; cursor:pointer;
+    font-family:var(--head); font-size:15.5px; font-weight:700; letter-spacing:-.01em;
+    color:var(--navy); background:var(--white);
+    display:flex; align-items:center; justify-content:center; gap:9px;
+    transition:transform .15s, opacity .2s, box-shadow .2s;
+    box-shadow:0 8px 26px rgba(255,255,255,.13);
+  }
+  .submit:active:not(:disabled){transform:scale(.985)}
+  .submit:disabled{opacity:.34; cursor:not-allowed; box-shadow:none}
+  .submit .spinner{
+    width:15px; height:15px; border-radius:50%;
+    border:2px solid rgba(6,25,91,.28); border-top-color:var(--navy);
+    animation:spin .7s linear infinite; display:none;
+  }
+  .submit.busy .spinner{display:block}
+  @keyframes spin{to{transform:rotate(360deg)}}
+
+  /* progress bar */
+  .bar{height:4px; border-radius:2px; background:rgba(255,255,255,.12); overflow:hidden; display:none}
+  .bar.on{display:block}
+  .bar i{display:block; height:100%; width:0%; border-radius:2px;
+    background:linear-gradient(90deg,var(--mint),var(--blue)); transition:width .25s ease}
+
+  /* states */
+  .state{display:none; flex-direction:column; gap:16px; align-items:center; text-align:center; padding:14px 0 6px}
+  .state.show{display:flex}
+  .state .ico{
+    width:66px; height:66px; border-radius:50%; display:grid; place-items:center;
+    background:rgba(8,222,170,.13); border:1px solid rgba(8,222,170,.42);
+  }
+  .state.err .ico{background:rgba(255,80,95,.12); border-color:rgba(255,80,95,.42)}
+  .state h2{font-size:22px; font-weight:800; letter-spacing:-.02em; margin:0}
+  .state p{font-size:14px; color:var(--dim); margin:0; line-height:1.55; max-width:38ch}
+  .again{
+    font-family:var(--mono); font-size:11.5px; letter-spacing:.10em; text-transform:uppercase;
+    font-weight:700; color:var(--white); background:transparent;
+    border:1px solid rgba(255,255,255,.30); border-radius:11px; padding:11px 20px; cursor:pointer;
+  }
+  .again:active{transform:scale(.97)}
+
+  /* footer */
+  footer{
+    margin-top:auto; padding-top:20px; display:flex; flex-direction:column; gap:7px;
+    align-items:center; text-align:center;
+  }
+  footer .h{font-family:var(--mono); font-size:12px; letter-spacing:.07em; color:rgba(255,255,255,.44)}
+  footer .tip{font-size:11.5px; color:rgba(255,255,255,.26); line-height:1.5; max-width:40ch}
+
+  .privacy{
+    display:flex; gap:9px; align-items:flex-start;
+    font-size:11.5px; line-height:1.5; color:rgba(255,255,255,.34);
+  }
+  .privacy svg{flex-shrink:0; margin-top:1px; opacity:.75}
+
+  @media (max-width:400px){
+    .card{padding:18px; border-radius:19px}
+    .rec-btn{width:82px; height:82px}
+  }
+  @media (prefers-reduced-motion:reduce){
+    *{animation:none !important; transition:none !important}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <img class="logo" src="logo.png" alt="iCube" width="74" />
+    <div style="display:flex;flex-direction:column;gap:13px">
+      <p class="eyebrow">Voice feedback</p>
+      <h1>Send me a <em>voice note.</em></h1>
+      <p class="sub">Talk me through anything you want changed — pacing, wording, the logo, the sound. Record it right here, or upload a file you already have.</p>
+    </div>
+  </header>
+
+  <form class="card" id="form" novalidate>
+    <div class="field">
+      <label class="label" for="name">Your name <span>— optional</span></label>
+      <input type="text" id="name" placeholder="e.g. Joseph" autocomplete="name" maxlength="80" />
+    </div>
+
+    <div class="field">
+      <span class="label">Your voice note</span>
+      <div class="switch" role="tablist" aria-label="Input method">
+        <button type="button" role="tab" id="tab-rec" aria-selected="true" aria-controls="panel-rec">Record</button>
+        <button type="button" role="tab" id="tab-up" aria-selected="false" aria-controls="panel-up">Upload</button>
+      </div>
+    </div>
+
+    <!-- RECORD -->
+    <div id="panel-rec" role="tabpanel" aria-labelledby="tab-rec" class="rec-panel">
+      <div class="meter idle" id="meter" aria-hidden="true"></div>
+      <button type="button" class="rec-btn" id="recBtn" aria-label="Start recording">
+        <span class="dot"></span>
+      </button>
+      <div class="timer" id="timer">0:00</div>
+      <div class="rec-hint" id="recHint">Tap to start recording</div>
+
+      <div class="player" id="player" hidden>
+        <audio id="audio" controls preload="metadata"></audio>
+        <button type="button" class="again" id="redo">Record again</button>
+      </div>
+    </div>
+
+    <!-- UPLOAD -->
+    <div id="panel-up" role="tabpanel" aria-labelledby="tab-up" hidden>
+      <input type="file" id="file" accept="audio/*,video/mp4,video/webm" />
+      <label for="file" class="file-row" id="dropzone" style="cursor:pointer">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 16V4m0 0L7.5 8.5M12 4l4.5 4.5"/><path d="M4 16.5v2A2.5 2.5 0 0 0 6.5 21h11a2.5 2.5 0 0 0 2.5-2.5v-2"/>
+        </svg>
+        <span class="ftxt">
+          <span class="fname" id="fname">Choose an audio file</span>
+          <span class="fsize" id="fsize">MP3, M4A, WAV, OGG, WEBM · up to 50 MB</span>
+        </span>
+        <span id="browseLbl">Browse</span>
+      </label>
+      <div class="player" id="upPlayer" hidden style="margin-top:12px">
+        <audio id="upAudio" controls preload="metadata"></audio>
+      </div>
+    </div>
+
+    <div class="field">
+      <label class="label" for="reel">What's it about? <span>— optional</span></label>
+      <select id="reel">
+        <option value="Technology partner reel">Technology partner reel</option>
+        <option value="Community appreciation reel">Community appreciation reel</option>
+        <option value="Both reels">Both reels</option>
+        <option value="The post designs">The post designs</option>
+        <option value="Something else">Something else</option>
+      </select>
+    </div>
+
+    <div class="field">
+      <label class="label" for="notes">Notes <span>— optional</span></label>
+      <textarea id="notes" placeholder="Anything you'd rather write down…" maxlength="2000"></textarea>
+    </div>
+
+    <div class="bar" id="bar"><i></i></div>
+    <button type="submit" class="submit" id="submit" disabled>
+      <span class="spinner"></span>
+      <span id="submitLbl">Send voice note</span>
+    </button>
+
+    <div class="privacy">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#08deaa" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M12 2 4 6v6c0 5 3.4 9.3 8 10 4.6-.7 8-5 8-10V6l-8-4Z"/>
+      </svg>
+      <span>Goes straight to iCube — not published or shared with anyone else.</span>
+    </div>
+  </form>
+
+  <!-- success -->
+  <div class="state" id="okState">
+    <div class="ico">
+      <svg width="29" height="29" viewBox="0 0 24 24" fill="none" stroke="#08deaa" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M4 12.5 9.5 18 20 6.5"/>
+      </svg>
+    </div>
+    <h2>Got it — thank you.</h2>
+    <p>Your voice note landed safely. I'll listen through and work the changes into the next version.</p>
+    <button type="button" class="again" id="again">Send another</button>
+  </div>
+
+  <!-- error -->
+  <div class="state err" id="errState">
+    <div class="ico">
+      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#ff5060" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M12 8v5"/><circle cx="12" cy="16.6" r=".9" fill="#ff5060" stroke="none"/><circle cx="12" cy="12" r="9.2"/>
+      </svg>
+    </div>
+    <h2>That didn't send</h2>
+    <p id="errMsg">Something went wrong on the way up. Your recording is still here — please try again.</p>
+    <button type="button" class="again" id="retry">Try again</button>
+  </div>
+
+  <footer>
+    <span class="h">@icubeinnovationslab</span>
+    <span class="tip">Best in a quiet room, close to your mic. Speak naturally — a rough note is more useful than a perfect silence.</span>
+  </footer>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>
