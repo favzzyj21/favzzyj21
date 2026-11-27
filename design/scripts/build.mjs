@@ -128,6 +128,7 @@ function header(W, M, idx, { light, variant }) {
 
 function footer(W, H, M, { light, pills = true, id }) {
   const col = light ? C.navy : C.white;
+  const ctaFill = light ? C.navy : C.mint;
   const yLine = H - M - 76;
   let out = line(M, yLine, W - M, yLine, col, 1, light ? 0.16 : 0.14);
   const cy = H - M - 34;
@@ -136,7 +137,9 @@ function footer(W, H, M, { light, pills = true, id }) {
   const row = socialRow({ x: M, y: cy - 12, size: 26, col, handleSize: 23, gap: 30 });
   out += row.svg;
   if (pills) {
-    out += pill(W - M, cy, 'LINK IN BIO', { stroke: light ? C.navy : C.white, textColor: col });
+    // Client instruction (2026-11-27): the ask is "Send us a DM", not a link in
+    // bio. Solid pill so it reads as the single call to action.
+    out += pill(W - M, cy, 'SEND US A DM', { fill: ctaFill, textColor: light ? C.white : C.ink });
   } else {
     out += text({ x: W - M, y: cy + 7, s: FULLNAME, size: 18, ff: F.mono, w: 500, fill: col, ls: 3, anchor: 'end', op: 0.5 });
   }
@@ -384,8 +387,8 @@ function post06(S) { // CTA
   b += text({ x: cx, y: ty, s: "Let's build", size: Math.round(74 * k), ff: F.head, w: 800, fill: C.white, anchor: 'middle' });
   b += text({ x: cx, y: ty + 84 * k, s: 'together.', size: Math.round(74 * k), ff: F.head, w: 800, fill: C.mint, anchor: 'middle' });
   b += text({ x: cx, y: ty + 156 * k, s: 'TECH · INNOVATE · IMPACT', size: Math.round(22 * k), ff: F.mono, w: 500, fill: C.white, ls: 5, anchor: 'middle', op: 0.85 });
-  // No "DM US" — the user reads it as a weak ask. Three social marks with the
-  // handle written beside them, the way their flyers do it.
+  // Three social marks with the handle written beside them, the way their
+  // flyers do it. The DM ask lives in the footer pill on every other card.
   const row = socialRow({
     x: 0,
     y: 0,
@@ -397,6 +400,15 @@ function post06(S) { // CTA
   });
   const cy = ty + 240 * k;
   b += `<g transform="translate(${cx - row.width / 2} ${cy})">${row.svg}</g>`;
+  // The DM ask is the point of this card, so it carries the pill itself.
+  // The footer is suppressed on 06, so there is nothing to collide with.
+  b += pill(cx + pillW('SEND US A DM', Math.round(24 * k), 3) / 2, cy + 96 * k, 'SEND US A DM', {
+    fill: C.mint,
+    textColor: C.ink,
+    fs: Math.round(24 * k),
+    h: Math.round(54 * k),
+    ls: 3,
+  });
   return { theme, body: b, glowId: '06', footerPills: false };
 }
 

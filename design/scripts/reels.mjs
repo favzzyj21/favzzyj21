@@ -264,7 +264,7 @@ function scene1(t) {
       b += `<g opacity="${la(0.62).toFixed(3)}">` +
         socialRow(W / 2, 1156, { col: C.white, handleCol: C.mint }).svg + '</g>';
       b += `<g opacity="${la(0.72).toFixed(3)}" transform="translate(0 ${((1 - la(0.72)) * 18).toFixed(1)})">` +
-        pill(W / 2, 1264, 'LINK IN BIO', { stroke: C.white, textColor: C.white, pop, w: 400 }) + '</g>';
+        pill(W / 2, 1264, 'SEND US A DM', { fill: C.mint, textColor: C.ink, pop, w: 460 }) + '</g>';
       b += '</g>';
     }
   }
@@ -367,7 +367,7 @@ function scene2(t) {
       b += `<g opacity="${la(0.56).toFixed(3)}">` +
         socialRow(W / 2, 1130, { col: C.white, handleCol: C.mint }).svg + '</g>';
       b += `<g opacity="${la(0.66).toFixed(3)}" transform="translate(0 ${((1 - la(0.66)) * 18).toFixed(1)})">` +
-        pill(W / 2, 1240, 'LINK IN BIO', { stroke: C.white, textColor: C.white, pop, w: 400 }) + '</g>';
+        pill(W / 2, 1240, 'SEND US A DM', { fill: C.mint, textColor: C.ink, pop, w: 460 }) + '</g>';
       b += '</g>';
     }
   }

@@ -20,7 +20,8 @@ Our focus is simple:
 
 One lab. Every solution.
 
-If you have a problem worth solving properly, let's talk.
+If you have a problem worth solving properly, **send us a DM** — we read every
+message.
 
 #iCube #TechForBusiness #SoftwareDevelopment #DigitalTransformation #Lagos
 #Innovation #WebDevelopment #ProductEngineering
@@ -37,7 +38,7 @@ operates.
 
 Tech. Innovate. Impact.
 
-Let's build something that matters.
+Send us a DM and let's build something that matters.
 
 #iCube #SoftwareDevelopment #DigitalTransformation #Innovation #Lagos
 
@@ -49,8 +50,9 @@ Let's build something that matters.
   works just as well as a single standalone post.
 - **File size** — all six are 1080×1350, which LinkedIn accepts directly. Use
   the 1080×1080 files if you want square.
-- **Do not** add "DM us" to the copy — you asked for it off the artwork, and it
-  reads weaker in writing too. "Let's talk" does the same job better.
+- The CTA across the artwork and the copy is **"Send us a DM"** — lowercase in
+  running text, as that reads naturally; the artwork sets it in caps. Keep the
+  two consistent if you edit either.
 - The handle `@icubeinnovationslab` links correctly on LinkedIn **only** if it is
   written in the copy as `@icubeinnovationslab` — LinkedIn will suggest the right
   company page as you type it. On the artwork the three logos are drawn, so the

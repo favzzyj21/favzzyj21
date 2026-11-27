@@ -15,12 +15,20 @@ skill, re-tokenized to iCube's own colours and fonts).
 | 03 | `03-web` | Web solutions spotlight with browser mockup |
 | 04 | `04-software` | Custom software spotlight with terminal motif |
 | 05 | `05-impact` | Impact spotlight — light theme, rising bars |
-| 06 | `06-cta` | Call to action — social row + link in bio |
+| 06 | `06-cta` | Call to action — social row + Send us a DM |
 
 **Revised after client review (2026-11-26):** printing was removed from the
 storyline and the “DM US” pill was replaced with Instagram · LinkedIn · X marks
 with `@icubeinnovationslab` written beside them, matching the client's flyers.
 `05-printing` became `05-impact`. Do not reintroduce printing or a DM prompt.
+
+**CTA changed to "Send us a DM" (2026-11-27).** The client reversed the earlier
+reading and asked for "Send us a DM" in place of "Link in bio". Every card's
+footer now carries a solid **SEND US A DM** pill (mint on dark cards, navy on
+the light impact card); the 06-cta card draws its own pill under the social row
+because the footer is suppressed there. The reels carry the same pill in both
+outros. There is no "Link in bio" anywhere in the artwork, and the caption's
+closer is "send us a DM".
 
 **Reels corrected to match (2026-11-27).** Both reels carried the old
 `TECH · PRINTING · WEB · SOFTWARE` line and a `DM US · LINK IN BIO` pill in
