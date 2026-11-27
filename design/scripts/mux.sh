@@ -17,12 +17,18 @@ mix_one () { # $1=id $2=duration $3=vo $4=bed
   local id="$1" dur="$2" vo="$3" bed="$4"
   local FADE_ST; FADE_ST=$(awk -v d="$dur" -v f="$FADE" 'BEGIN{printf "%.2f", d-f}')
   local out="reels/${id}-reel.mp4"
-  # always mix from the pristine video; keep a backup so re-runs never stack audio
+  # Always mix from a pristine (silent) video. A freshly rendered reel has no
+  # audio stream, so if $out is silent it IS the new picture: refresh the backup
+  # from it. Only fall back to the old backup when $out already carries audio
+  # (i.e. we are re-running the mix without a re-render) so audio never stacks.
   mkdir -p reels/_clean
-  if [ ! -f "reels/_clean/${id}-reel.mp4" ]; then
-    cp "$out" "reels/_clean/${id}-reel.mp4"
-  fi
   local src="reels/_clean/${id}-reel.mp4"
+  local silent=0
+  if ! "$FF" -hide_banner -i "$out" 2>&1 | grep -q "Audio:"; then silent=1; fi
+  if [ "$silent" = "1" ] || [ ! -f "$src" ]; then
+    echo "   silent video -> using it as the picture source"
+    cp "$out" "$src"
+  fi
   echo "== $id ($dur s)"
 
   # Pass A: VO (delayed 0.6s for breath) + sidechain-ducked bed -> compressed pre-master

@@ -21,6 +21,54 @@ const C = { ink: '#03050a', navy: '#06195b', blue: '#3c6bff', mint: '#08deaa', w
 const F = { head: 'Poppins', body: 'Space Grotesk', mono: 'JetBrains Mono' };
 const HANDLE = '@icubeinnovationslab';
 
+/* ── social marks (same drawings as build.mjs — Instagram, LinkedIn, X) ──
+   Client instruction: no "DM us" anywhere. The three marks carry the ask,
+   with the handle written beside them in flyer style. */
+function social(kind, x, y, col = C.white, s = 1) {
+  const st = `stroke="${col}" stroke-width="1.9" fill="none" stroke-linecap="round" stroke-linejoin="round"`;
+  const p = {
+    instagram:
+      `<rect x="3" y="3" width="18" height="18" rx="5.2" ${st}/>` +
+      `<circle cx="12" cy="12" r="4.1" ${st}/>` +
+      `<circle cx="17.2" cy="6.8" r="1.25" fill="${col}" stroke="none"/>`,
+    linkedin:
+      `<rect x="3" y="3" width="18" height="18" rx="4" ${st}/>` +
+      `<path d="M7.6 10.4v6.1" ${st}/>` +
+      `<circle cx="7.6" cy="7.5" r="1.15" fill="${col}" stroke="none"/>` +
+      `<path d="M11.6 16.5v-3.3a2.4 2.4 0 0 1 4.8 0v3.3" ${st}/>` +
+      `<path d="M11.6 10.4v6.1" ${st}/>`,
+    x:
+      `<path d="M4.2 3.6h3.1l12.5 16.8h-3.1z" ${st}/>` +
+      `<path d="M20.1 3.6 13.2 11.4M10.9 14 3.9 20.4" ${st}/>`,
+  }[kind];
+  return `<g transform="translate(${x} ${y}) scale(${s})">${p}</g>`;
+}
+// Three marks + handle, centred on cx. Returns { svg, width }.
+function socialRow(cx, y, { size = 34, col = C.white, gap = 42, handleSize = 32, handleCol } = {}) {
+  const icons = ['instagram', 'linkedin', 'x'];
+  const step = size + gap;
+  const handleW = HANDLE.length * handleSize * 0.60;
+  const width = icons.length * size + (icons.length - 1) * gap + gap + handleW;
+  let out = '';
+  let x = cx - width / 2;
+  for (const i of icons) {
+    out += social(i, x, y, col, size / 24);
+    x += step;
+  }
+  out += text({
+    x: x - gap + gap,
+    y: y + size * 0.74,
+    s: HANDLE,
+    size: handleSize,
+    ff: F.mono,
+    w: 500,
+    fill: handleCol || col,
+    ls: 1,
+    op: 0.9,
+  });
+  return { svg: out, width };
+}
+
 // ── ORIGINAL logo (untouched source PNG — never re-traced) ──
 const MARK_PNG = fs.readFileSync(path.join(ASSETS, 'mark-white.png'));
 const MARK_B64 = MARK_PNG.toString('base64');
@@ -212,12 +260,11 @@ function scene1(t) {
         text({ x: W / 2, y: 946, s: 'together.', size: 96, ff: F.head, w: 800, fill: 'url(#accent)', anchor: 'middle', ls: -2, italic: true }) + '</g>';
       b += drawRule(W / 2 - 90, 1014, 180, easeOut((t - R1_OUTRO - 0.5) / 0.5), { stroke: C.mint, sw: 5 });
       b += `<g opacity="${la(0.5).toFixed(3)}">` +
-        text({ x: W / 2, y: 1086, s: 'TECH · PRINTING · WEB · SOFTWARE', size: 27, ff: F.mono, w: 500, fill: C.white, ls: 5, anchor: 'middle', op: 0.85 }) + '</g>';
+        text({ x: W / 2, y: 1086, s: 'TECH · INNOVATE · IMPACT', size: 27, ff: F.mono, w: 500, fill: C.white, ls: 5, anchor: 'middle', op: 0.85 }) + '</g>';
       b += `<g opacity="${la(0.62).toFixed(3)}">` +
-        text({ x: W / 2, y: 1178, s: HANDLE, size: 34, ff: F.mono, w: 600, fill: C.white, anchor: 'middle' }) + '</g>';
-      b += `<g opacity="${la(0.72).toFixed(3)}">`;
-      b += pill(W / 2, 1272, 'DM US  ·  LINK IN BIO', { fill: C.white, textColor: C.navy, pop, w: 620 });
-      b += '</g>';
+        socialRow(W / 2, 1156, { col: C.white, handleCol: C.mint }).svg + '</g>';
+      b += `<g opacity="${la(0.72).toFixed(3)}" transform="translate(0 ${((1 - la(0.72)) * 18).toFixed(1)})">` +
+        pill(W / 2, 1264, 'LINK IN BIO', { stroke: C.white, textColor: C.white, pop, w: 400 }) + '</g>';
       b += '</g>';
     }
   }
@@ -318,10 +365,9 @@ function scene2(t) {
       b += `<g opacity="${la(0.44).toFixed(3)}">` +
         text({ x: W / 2, y: 1082, s: 'SUPPORTERS · CLIENTS · PARTNERS', size: 27, ff: F.mono, w: 500, fill: C.white, ls: 5, anchor: 'middle', op: 0.85 }) + '</g>';
       b += `<g opacity="${la(0.56).toFixed(3)}">` +
-        text({ x: W / 2, y: 1152, s: HANDLE, size: 34, ff: F.mono, w: 600, fill: C.white, anchor: 'middle' }) + '</g>';
-      b += `<g opacity="${la(0.66).toFixed(3)}">`;
-      b += pill(W / 2, 1246, 'DM US  ·  LINK IN BIO', { fill: C.white, textColor: C.navy, pop, w: 620 });
-      b += '</g>';
+        socialRow(W / 2, 1130, { col: C.white, handleCol: C.mint }).svg + '</g>';
+      b += `<g opacity="${la(0.66).toFixed(3)}" transform="translate(0 ${((1 - la(0.66)) * 18).toFixed(1)})">` +
+        pill(W / 2, 1240, 'LINK IN BIO', { stroke: C.white, textColor: C.white, pop, w: 400 }) + '</g>';
       b += '</g>';
     }
   }
@@ -414,7 +460,14 @@ function encodeReel(id) {
 }
 
 const mode = process.argv[2];
-if (mode === 'chunk') {
+if (mode === 'still') {
+  // node scripts/reels.mjs still <id> <t> <outfile>  — render one frame for review
+  const [, , , id, tStr, outFile] = process.argv;
+  const { scene } = REELS[id];
+  const svg = frameSvg(scene, +tStr / TIME_SCALE);
+  fs.writeFileSync(outFile, new Resvg(svg, { font: { fontFiles: FONTS, loadSystemFonts: false } }).render().asPng());
+  console.log('still ->', outFile);
+} else if (mode === 'chunk') {
   renderChunk(process.argv[3], +process.argv[4], +process.argv[5]);
 } else {
   fs.mkdirSync(OUT, { recursive: true });

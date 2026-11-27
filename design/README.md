@@ -22,6 +22,16 @@ storyline and the “DM US” pill was replaced with Instagram · LinkedIn · X 
 with `@icubeinnovationslab` written beside them, matching the client's flyers.
 `05-printing` became `05-impact`. Do not reintroduce printing or a DM prompt.
 
+**Reels corrected to match (2026-11-27).** Both reels carried the old
+`TECH · PRINTING · WEB · SOFTWARE` line and a `DM US · LINK IN BIO` pill in
+their outros; they now use `TECH · INNOVATE · IMPACT` plus the same
+Instagram · LinkedIn · X row with the handle, and a plain `LINK IN BIO` outline
+pill. Picture was re-rendered; the VO + bed mix was re-created unchanged
+(audio MD5 identical to the approved mix). `mux.sh` was also fixed — it used to
+rebuild from a stale `reels/_clean/` backup and would silently restore the old
+outro over a fresh render. It now detects a silent (freshly rendered) video and
+uses that as the picture source.
+
 Every design is exported at:
 
 - `1080 × 1080` — feed square
